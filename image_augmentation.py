@@ -16,6 +16,28 @@ for i in range(1,9):
 plt.show()
 '''
 
+class Resize(object):
+    def __init__(self, size, interpolation=Image.BILINEAR):
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, img):
+        # padding
+        ratio = self.size[0] / self.size[1]
+        w, h = img.size
+        if w / h < ratio:
+            t = int(h * ratio)
+            w_padding = (t - w) // 2
+            img = img.crop((-w_padding, 0, w+w_padding, h))
+        else:
+            t = int(w / ratio)
+            h_padding = (t - h) // 2
+            img = img.crop((0, -h_padding, w, h+h_padding))
+
+        img = img.resize(self.size, self.interpolation)
+
+        return img
+
 def default_loader(path):
     return Image.open(path).convert('RGB')
 
@@ -46,9 +68,10 @@ def img_rotate(img):
     return [img, img_90, img_180, img_270]
 
 def img_augmentation(img_name):
+    resize_tool = Resize((512, 512))
     img_path = [img_name]
     img = Image.open(img_name).convert("RGB")
-    img = img.resize((512, 512))
+    img = resize_tool(img)
     img_ud = img.transpose(Image.FLIP_TOP_BOTTOM)
     results = img_path + img_rotate(img) + img_rotate(img_ud)
     return results
@@ -64,16 +87,26 @@ def img_enrich_x8(img_lists, csv_path="", new_img_path=""):
         img_lists[i+1].save(full_path)
         writer.writerow([file_path, label])
 
+if __name__ == "__main__":
+    # img = Image.open('C:/Users/Gsx/Desktop/1.jpg')
+    result = img_augmentation('C:/Users/Gsx/Desktop/cat.jpg')[1:]
+    plt.figure()
+    for i in range(1, 9):
+        plt.subplot(2, 4, i)
+        plt.imshow(result[i - 1])
+        plt.xticks([])
+        plt.yticks([])
+    plt.show()
 # if __name__ == "__main__":
 #     train_data = MyDataset('datasets/Train_label.csv')
 #     train_loader = DataLoader(dataset=train_data, batch_size=1, shuffle=True, num_workers=4, pin_memory=True)
 #     new_img_path = "C:/Users/Gsx/Desktop/images/"
 #     csv_path = 'C:/Users/Gsx/Desktop/1021.csv'
-# 
+#
 #     for i, (images, labels) in enumerate(train_loader):
 #         image = images[0]
 #         labels = labels.numpy().tolist()[0]
 #         # print(len(img_augmentation(img_name=image)))
 #         img_enrich_x8(img_augmentation(img_name=image) + [labels], csv_path=csv_path, new_img_path=new_img_path)
-#         exit()
+#
 
